@@ -97,6 +97,66 @@ If everything is successful, you should see output indicating that various modul
 
 # Running the Verifier
 
+## Ubuntu 22.04 container (x86-64)
+
+Build from the repository root with Docker:
+
+```sh
+docker build -f tools/ubuntu-22.04/Dockerfile -t verus:ubuntu22.04 .
+docker run --rm verus:ubuntu22.04
+docker run --rm verus:ubuntu22.04 bash /opt/test-verus.sh
+```
+
+This compiles the checked-out Verus source and its libraries on Ubuntu 22.04,
+using the Rust version in `rust-toolchain.toml`. The default container command
+verifies the sample library crate in `tools/ubuntu-22.04/sample/src/lib.rs`.
+The test script also compiles that crate and checks that a deliberately invalid
+postcondition is rejected. No host Rust installation is needed.
+
+To check the sample as a Cargo project (also verifying `vstd`, and downloading
+Cargo dependencies on the first run):
+
+```sh
+docker run --rm verus:ubuntu22.04 cargo verus verify -- -V no-solver-version-check
+```
+
+The `build` stage contains **no Z3**. It builds `vstd` with `--no-verify`, so
+compilation does not depend on a solver version. This compiles and exports
+`vstd` but does **not** reverify its proofs. To build only these solver-independent
+artifacts, add `--target build` to the Docker build command.
+
+The separate `runtime` stage installs Z3 4.12.5's `x64-glibc-2.35` binary,
+which runs on Ubuntu 22.04, instead of the newer binary downloaded by
+`source/tools/get-z3.sh`. Verification uses `-V no-solver-version-check`;
+this disables only the version check, not verification. Other solver releases
+can be selected with `--build-arg Z3_VERSION=... --build-arg Z3_PLATFORM=...`,
+without rebuilding Verus. The release must provide the corresponding GitHub
+ZIP asset and be compatible with the container; bypassing the version check
+does not guarantee arbitrary solver versions are compatible.
+
+The image includes `verus`, `cargo-verus`, the required Rust toolchain, and the
+source tree. To verify a different standalone library crate:
+
+```sh
+docker run --rm -v "$PWD/my-crate:/work:ro" verus:ubuntu22.04 \
+    verus --crate-type=lib /work/src/lib.rs -V no-solver-version-check
+```
+
+To extract the built binaries and libraries (the destination must be empty):
+
+```sh
+mkdir -p source/target-verus/ubuntu22.04
+docker run --rm verus:ubuntu22.04 tar -C /opt/verus-bin -cf - . \
+    | tar -C source/target-verus/ubuntu22.04 -xf -
+```
+
+When running extracted binaries outside the image, also install the pinned
+Rust toolchain, provide a compatible Z3 through `VERUS_Z3_PATH`, and pass
+`-V no-solver-version-check`. Set `--build-arg BUILD_JOBS=2` when building on
+machines with less memory (the default is four concurrent Cargo jobs).
+
+## Command-line usage
+
 After running the build steps above, you can verify an example file.
 From the `source` directory, run:
 
