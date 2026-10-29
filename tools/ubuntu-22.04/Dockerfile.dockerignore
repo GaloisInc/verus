@@ -1,0 +1,8 @@
+**/target
+**/target-verus
+**/.verus-log
+.agents
+.aws
+.codex
+source/z3
+source/cvc5

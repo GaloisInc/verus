@@ -1,0 +1,13 @@
+[package]
+name = "ubuntu22-verus-smoke"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+vstd = { path = "../../../source/vstd" }
+
+[package.metadata.verus]
+verify = true
